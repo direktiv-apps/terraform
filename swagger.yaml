@@ -1,0 +1,219 @@
+swagger: "2.0"
+info:
+  description: Run Hashicorp Terrafrom from Direktiv
+  title: terraform
+  version: 1.0.0
+  x-direktiv-meta:
+    container: direktiv/terraform
+    maintainer: |-
+      [direktiv.io](https://www.direktiv.io) 
+    issues: https://github.com/direktiv-apps/terraform/issues
+    url: https://github.com/direktiv-apps/terraform  
+    categories:
+    - Cloud
+    - Tools
+    license: |-
+      [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)
+    long-description: 
+consumes:
+- application/json
+produces:
+- application/json
+schemes:
+- http
+paths:
+  /: 
+    delete:
+      parameters:
+        - name: Direktiv-ActionID
+          in: header
+          type: string
+          description: |
+            On cancel Direktiv sends a DELETE request to
+            the action with id in the header
+      x-direktiv:
+        cancel: echo 'cancel {{ .DirektivActionID }}'
+      responses:
+        200:
+    post:
+      parameters:
+        - name: Direktiv-ActionID
+          in: header
+          type: string
+          description: |
+            direktiv action id is an UUID. 
+            For development it can be set to 'development'
+        - name: Direktiv-TempDir
+          in: header
+          type: string
+          description: |
+            direktiv temp dir is the working directory for that request
+            For development it can be set to e.g. '/tmp'
+        - name: body
+          in: body
+          schema:
+            type: object
+            properties:
+              continue:
+                type: boolean
+                description: If set to true all commands are getting executed and errors ignored.
+                default: false
+                example: true
+              commands:
+                description: Commands to execute in order.
+                example:
+                - terraform -chdir=out/workflow/tfbase.tar.gz plan
+                type: array
+                items:
+                  type: string
+              variables:
+                type: array
+                description: Variables set for all commands. This translatyes into TF_VAR_* environment variables.
+                example: 
+                - name: instance_name
+                  value: myinstance
+                items:
+                  type: object
+                  properties:
+                    name:
+                      description: Name of the variable.
+                      type: string
+                    value:
+                      description: Value of the variable.
+                      type: string
+                
+      # direktiv code generation is configured here
+      x-direktiv-function: |-
+        functions:
+          - id: terraform
+            image: direktiv/terraform
+            type: knative-workflow
+      x-direktiv-examples:
+        - title: Basic
+          content: |-
+            - id: tf
+                 type: action
+                 action:
+                  function: get
+                  files:
+                  # Contains all required .tf files. Can point to a plain text .tf file as well.
+                  - scope: workflow
+                    key: tfbase.tar.gz
+                    as: tf
+                    type: tar.gz
+                  input: 
+                    commands:
+                    # the execution dir (chdir) is "tf" which we create in the "files" section
+                    # Storing the state in "../out/workflow/terraform.tfstate" will store the state in workflow scope. 
+                    - terraform -chdir=tf apply -state=../out/workflow/terraform.tfstate -no-color -auto-approve
+        - title: Example with Variables and Secrets
+          content: |-
+            - id: tf
+                 type: action
+                   action:
+                    function: get
+                    secrets: ["password"]
+                    files:
+                    - scope: workflow
+                      key: main.tf
+                    input: 
+                      commands:
+                      # Uses tfstate with a jq component. Can run same .tf file for different instances. 
+                      - terraform apply -state=out/workflow/terraform-jq(.instance).tfstate -no-color -auto-approve
+                      # returns state of the change and can be used in a switch later
+                      - terraform plan -detailed-exitcode | echo $?
+                      variables:
+                      - name: instance_name
+                        value: jq(.instance)
+                      # Use of Direktiv secrets or fetch secrets earlier in the flow.
+                      - password:
+                        value: jq(.secrets.password)
+        - title: Visualize
+          content: |-
+            - id: tf
+                 type: action
+                   action:
+                    function: get
+                    files:
+                    - scope: workflow
+                      key: main.tf
+                    input: 
+                      commands:
+                      # return graph as base64
+                      - terraform graph | dot -Tpng | base64 -w0
+                      # store graph as Direktiv variable
+                      - terraform graph | dot -Tpng > out/workflow/graph.png
+      x-direktiv:
+        debug: true
+        cmds:
+        - action: foreach
+          loop: .Commands
+          exec: /bin/bash -c "{{ .Item }}"
+          env: ["TF_IN_AUTOMATION=y", "TF_INPUT=0"]
+          continue: '{{ .Body.Continue }}'
+          runtime-envs: |
+            [
+            {{- range $index, $element := .Body.Variables }}
+            {{- if $index}},{{- end}}
+            "TF_VAR_{{ $element.Name }}={{ $element.Value }}"
+            {{- end }}
+            ]
+        output: |
+          {
+            "terraform": {{ index . 0 | toJson }}
+          }
+      x-direktiv-errors:
+        io.direktiv.command.error: Command execution failed
+        io.direktiv.output.error: Template error for output generation of the service
+        io.direktiv.ri.error: Can not create information object from request
+      responses:
+        200:
+          description: List of executed commands.
+          examples:
+            output:
+            - result: VTQ3U....c2ZaN0FJaldjVnkra2tKV==
+              success: true
+            - result:
+              format_version: "1.0"
+              success: true
+          schema:
+            type: object
+            properties:
+              output:
+                type: array
+                items:
+                  type: object
+                  required:
+                  - success
+                  - result
+                  properties:
+                    success:
+                      type: boolean
+                    result:
+                      additionalProperties: {}
+        default:
+          description: generic error response
+          headers:
+            Direktiv-ErrorCode:
+              type: string
+            Direktiv-ErrorMessage:
+              type: string
+          schema:
+            $ref: "#/definitions/error"
+definitions:
+  direktivFile:
+    type: object
+    x-go-type:
+      type: DirektivFile
+      import:
+        package: github.com/direktiv/apps/go/pkg/apps 
+  error:
+    type: object
+    required:
+      - errorCode
+      - errorMessage
+    properties:
+      errorCode:
+        type: string
+      errorMessage:
+        type: string
