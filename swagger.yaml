@@ -2,7 +2,7 @@ swagger: "2.0"
 info:
   description: Run Hashicorp Terrafrom from Direktiv
   title: terraform
-  version: 1.0.0
+  version: "1.0"
   x-direktiv-meta:
     container: direktiv/terraform
     maintainer: |-
