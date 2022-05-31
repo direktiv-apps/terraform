@@ -41,6 +41,9 @@ This function has [Terraform](https://www.terraform.io/) and the graphiz install
           - name: name
             value: MyName
           commands:
+          # Direktiv links files as 600 into the filsystem, we change it to make it executable
+          # This depends on your plugins
+          - command: chmod -R 755 out/workflow/tf
           - command: terraform -chdir=out/workflow/tf apply -no-color -auto-approve
           - command: terraform -chdir=out/workflow/tf output -json
    ```
@@ -161,6 +164,7 @@ This function has [Terraform](https://www.terraform.io/) and the graphiz install
 | Name | Type | Go type | Required | Default | Description | Example |
 |------|------|---------|:--------:| ------- |-------------|---------|
 | commands | [][PostParamsBodyCommandsItems](#post-params-body-commands-items)| `[]*PostParamsBodyCommandsItems` |  | | Array of commands. |  |
+| envs | [][PostParamsBodyEnvsItems](#post-params-body-envs-items)| `[]*PostParamsBodyEnvsItems` |  | | Environment variables set for all commands, e.g. for AWS_* variables | `[{"name":"AWS_ACCESS_KEY_ID","value":"jq(.secrets.aws)"}]` |
 | loglevel | string| `string` |  | `"off"`| Terraform log level, default off |  |
 | scope | string| `string` |  | `"instance"`| Scope where the log file is stored, default instance. Filename `tf.log`. |  |
 | variables | [][PostParamsBodyVariablesItems](#post-params-body-variables-items)| `[]*PostParamsBodyVariablesItems` |  | | Variables set for all commands. This translatyes into TF_VAR_* environment variables. | `[{"name":"instance_name","value":"myinstance"}]` |
@@ -180,6 +184,20 @@ This function has [Terraform](https://www.terraform.io/) and the graphiz install
 | continue | boolean| `bool` |  | | Stops excecution if command fails, otherwise proceeds with next command |  |
 | print | boolean| `bool` |  | `true`| If set to false the command will not print the full command with arguments to logs. |  |
 | silent | boolean| `bool` |  | | If set to false the command will not print output to logs. |  |
+
+
+#### <span id="post-params-body-envs-items"></span> postParamsBodyEnvsItems
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| name | string| `string` |  | | Name of the variable. |  |
+| value | string| `string` |  | | Value of the variable. |  |
 
 
 #### <span id="post-params-body-variables-items"></span> postParamsBodyVariablesItems
