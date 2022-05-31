@@ -184,6 +184,13 @@ func runCommand0(ctx context.Context,
 {{- if $index}},{{- end}}
 "TF_VAR_{{ $element.Name }}={{ $element.Value }}"
 {{- end }}
+{{- $lenVar := len .Body.Variables }}
+{{- $lenEnvs := len .Body.Envs }}
+{{- if and (gt $lenVar 0) (gt $lenEnvs 0) }},{{- end}}
+{{- range $index, $element := .Body.Envs }}
+{{- if $index}},{{- end}}
+"{{ $element.Name }}={{ $element.Value }}"
+{{- end }}
 ]
 `, ls)
 		if err != nil {

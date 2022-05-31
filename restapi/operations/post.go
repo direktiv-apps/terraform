@@ -69,6 +69,10 @@ type PostBody struct {
 	// Array of commands.
 	Commands []*PostParamsBodyCommandsItems0 `json:"commands"`
 
+	// Environment variables set for all commands, e.g. for AWS_* variables
+	// Example: [{"name":"AWS_ACCESS_KEY_ID","value":"jq(.secrets.aws)"}]
+	Envs []*PostParamsBodyEnvsItems0 `json:"envs"`
+
 	// Terraform log level, default off
 	Loglevel *string `json:"loglevel,omitempty"`
 
@@ -85,6 +89,10 @@ func (o *PostBody) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := o.validateCommands(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.validateEnvs(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -114,6 +122,32 @@ func (o *PostBody) validateCommands(formats strfmt.Registry) error {
 					return ve.ValidateName("body" + "." + "commands" + "." + strconv.Itoa(i))
 				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("body" + "." + "commands" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (o *PostBody) validateEnvs(formats strfmt.Registry) error {
+	if swag.IsZero(o.Envs) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(o.Envs); i++ {
+		if swag.IsZero(o.Envs[i]) { // not required
+			continue
+		}
+
+		if o.Envs[i] != nil {
+			if err := o.Envs[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("body" + "." + "envs" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("body" + "." + "envs" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -158,6 +192,10 @@ func (o *PostBody) ContextValidate(ctx context.Context, formats strfmt.Registry)
 		res = append(res, err)
 	}
 
+	if err := o.contextValidateEnvs(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := o.contextValidateVariables(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -178,6 +216,26 @@ func (o *PostBody) contextValidateCommands(ctx context.Context, formats strfmt.R
 					return ve.ValidateName("body" + "." + "commands" + "." + strconv.Itoa(i))
 				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("body" + "." + "commands" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (o *PostBody) contextValidateEnvs(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(o.Envs); i++ {
+
+		if o.Envs[i] != nil {
+			if err := o.Envs[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("body" + "." + "envs" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("body" + "." + "envs" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -440,6 +498,46 @@ func (o *PostParamsBodyCommandsItems0) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (o *PostParamsBodyCommandsItems0) UnmarshalBinary(b []byte) error {
 	var res PostParamsBodyCommandsItems0
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
+}
+
+// PostParamsBodyEnvsItems0 post params body envs items0
+//
+// swagger:model PostParamsBodyEnvsItems0
+type PostParamsBodyEnvsItems0 struct {
+
+	// Name of the variable.
+	Name string `json:"name,omitempty"`
+
+	// Value of the variable.
+	Value string `json:"value,omitempty"`
+}
+
+// Validate validates this post params body envs items0
+func (o *PostParamsBodyEnvsItems0) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this post params body envs items0 based on context it is used
+func (o *PostParamsBodyEnvsItems0) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *PostParamsBodyEnvsItems0) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *PostParamsBodyEnvsItems0) UnmarshalBinary(b []byte) error {
+	var res PostParamsBodyEnvsItems0
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

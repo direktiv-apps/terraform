@@ -41,7 +41,7 @@ func init() {
       "container": "gcr.io/direktiv/apps/terraform",
       "issues": "https://github.com/direktiv-apps/terraform/issues",
       "license": "[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)",
-      "long-description": null,
+      "long-description": "This function has [Terraform](https://www.terraform.io/) and the graphiz installed. Direktiv variables can be used to store and load the state.  The function can run ` + "`" + `init` + "`" + ` but accepts data prepared with ` + "`" + `init` + "`" + ` already. ",
       "maintainer": "[direktiv.io](https://www.direktiv.io) ",
       "url": "https://github.com/direktiv-apps/terraform"
     }
@@ -95,6 +95,29 @@ func init() {
                       }
                     }
                   }
+                },
+                "envs": {
+                  "description": "Environment variables set for all commands, e.g. for AWS_* variables",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "Name of the variable.",
+                        "type": "string"
+                      },
+                      "value": {
+                        "description": "Value of the variable.",
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "example": [
+                    {
+                      "name": "AWS_ACCESS_KEY_ID",
+                      "value": "jq(.secrets.aws)"
+                    }
+                  ]
                 },
                 "loglevel": {
                   "description": "Terraform log level, default off",
@@ -202,7 +225,7 @@ func init() {
               "exec": "{{ .Item.Command }}",
               "loop": ".Commands",
               "print": "{{ .Item.Print }}",
-              "runtime-envs": "[\n{{- range $index, $element := .Body.Variables }}\n{{- if $index}},{{- end}}\n\"TF_VAR_{{ $element.Name }}={{ $element.Value }}\"\n{{- end }}\n]\n",
+              "runtime-envs": "[\n{{- range $index, $element := .Body.Variables }}\n{{- if $index}},{{- end}}\n\"TF_VAR_{{ $element.Name }}={{ $element.Value }}\"\n{{- end }}\n{{- $lenVar := len .Body.Variables }}\n{{- $lenEnvs := len .Body.Envs }}\n{{- if and (gt $lenVar 0) (gt $lenEnvs 0) }},{{- end}}\n{{- range $index, $element := .Body.Envs }}\n{{- if $index}},{{- end}}\n\"{{ $element.Name }}={{ $element.Value }}\"\n{{- end }}\n]\n",
               "silent": "{{ .Item.Silent }}"
             }
           ],
@@ -216,15 +239,15 @@ func init() {
         },
         "x-direktiv-examples": [
           {
-            "content": "- id: tf\n     type: action\n     action:\n      function: get\n      files:\n      # Contains all required .tf files. Can point to a plain text .tf file as well.\n      - scope: workflow\n        key: tfbase.tar.gz\n        as: tf\n        type: tar.gz\n      input: \n        commands:\n        # the execution dir (chdir) is \"tf\" which we create in the \"files\" section\n        # Storing the state in \"../out/workflow/terraform.tfstate\" will store the state in workflow scope. \n        - terraform -chdir=tf apply -state=../out/workflow/terraform.tfstate -no-color -auto-approve",
+            "content": "- id: tf\n     type: action\n      action:\n        files:\n        # Contains all required .tf files after init. Can point to a plain text .tf file as well.\n        - scope: workflow\n          key: tf.tar.gz\n          as: out/workflow/tf\n          type: tar.gz\n        function: get\n        input: \n          variables:\n          - name: name\n            value: MyName\n          commands:\n          - command: terraform -chdir=out/workflow/tf apply -no-color -auto-approve\n          - command: terraform -chdir=out/workflow/tf output -json",
             "title": "Basic"
           },
           {
-            "content": "- id: tf\n     type: action\n       action:\n        function: get\n        secrets: [\"password\"]\n        files:\n        - scope: workflow\n          key: main.tf\n        input: \n          commands:\n          # Uses tfstate with a jq component. Can run same .tf file for different instances. \n          - terraform apply -state=out/workflow/terraform-jq(.instance).tfstate -no-color -auto-approve\n          # returns state of the change and can be used in a switch later\n          - terraform plan -detailed-exitcode | echo $?\n          variables:\n          - name: instance_name\n            value: jq(.instance)\n          # Use of Direktiv secrets or fetch secrets earlier in the flow.\n          - password:\n            value: jq(.secrets.password)",
+            "content": "- id: tf\n     type: action\n       action:\n        function: get\n        secrets: [\"password\"]\n        files:\n        - scope: workflow\n          key: main.tf\n        input: \n          commands:\n          # Uses tfstate with a jq component. Can run same .tf file for different instances. \n          - command: terraform apply -state=out/workflow/terraform-jq(.instance).tfstate -no-color -auto-approve\n          # returns state of the change and can be used in a switch later\n          - command: terraform plan -detailed-exitcode | echo $?\n          variables:\n          - name: instance_name\n            value: jq(.instance)\n          # Use of Direktiv secrets or fetch secrets earlier in the flow.\n          - password:\n            value: jq(.secrets.password)",
             "title": "Example with Variables and Secrets"
           },
           {
-            "content": "- id: tf\n     type: action\n       action:\n        function: get\n        files:\n        - scope: workflow\n          key: main.tf\n        input: \n          commands:\n          # return graph as base64\n          - terraform graph | dot -Tpng | base64 -w0\n          # store graph as Direktiv variable\n          - terraform graph | dot -Tpng \u003e out/workflow/graph.png",
+            "content": "- id: tf\n     type: action\n       action:\n        function: get\n        files:\n        - scope: workflow\n          key: main.tf\n        input: \n          commands:\n          # return graph as base64\n          - command: bash -c 'terraform -chdir=out/workflow/tf graph | dot -Tpng | base64 -w0'\n          # store graph as Direktiv variable\n          - command: bash -c 'terraform graph | dot -Tpng \u003e out/workflow/graph.png'",
             "title": "Visualize"
           }
         ],
@@ -301,7 +324,7 @@ func init() {
       "container": "gcr.io/direktiv/apps/terraform",
       "issues": "https://github.com/direktiv-apps/terraform/issues",
       "license": "[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)",
-      "long-description": null,
+      "long-description": "This function has [Terraform](https://www.terraform.io/) and the graphiz installed. Direktiv variables can be used to store and load the state.  The function can run ` + "`" + `init` + "`" + ` but accepts data prepared with ` + "`" + `init` + "`" + ` already. ",
       "maintainer": "[direktiv.io](https://www.direktiv.io) ",
       "url": "https://github.com/direktiv-apps/terraform"
     }
@@ -334,6 +357,19 @@ func init() {
                   "items": {
                     "$ref": "#/definitions/CommandsItems0"
                   }
+                },
+                "envs": {
+                  "description": "Environment variables set for all commands, e.g. for AWS_* variables",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/EnvsItems0"
+                  },
+                  "example": [
+                    {
+                      "name": "AWS_ACCESS_KEY_ID",
+                      "value": "jq(.secrets.aws)"
+                    }
+                  ]
                 },
                 "loglevel": {
                   "description": "Terraform log level, default off",
@@ -419,7 +455,7 @@ func init() {
               "exec": "{{ .Item.Command }}",
               "loop": ".Commands",
               "print": "{{ .Item.Print }}",
-              "runtime-envs": "[\n{{- range $index, $element := .Body.Variables }}\n{{- if $index}},{{- end}}\n\"TF_VAR_{{ $element.Name }}={{ $element.Value }}\"\n{{- end }}\n]\n",
+              "runtime-envs": "[\n{{- range $index, $element := .Body.Variables }}\n{{- if $index}},{{- end}}\n\"TF_VAR_{{ $element.Name }}={{ $element.Value }}\"\n{{- end }}\n{{- $lenVar := len .Body.Variables }}\n{{- $lenEnvs := len .Body.Envs }}\n{{- if and (gt $lenVar 0) (gt $lenEnvs 0) }},{{- end}}\n{{- range $index, $element := .Body.Envs }}\n{{- if $index}},{{- end}}\n\"{{ $element.Name }}={{ $element.Value }}\"\n{{- end }}\n]\n",
               "silent": "{{ .Item.Silent }}"
             }
           ],
@@ -433,15 +469,15 @@ func init() {
         },
         "x-direktiv-examples": [
           {
-            "content": "- id: tf\n     type: action\n     action:\n      function: get\n      files:\n      # Contains all required .tf files. Can point to a plain text .tf file as well.\n      - scope: workflow\n        key: tfbase.tar.gz\n        as: tf\n        type: tar.gz\n      input: \n        commands:\n        # the execution dir (chdir) is \"tf\" which we create in the \"files\" section\n        # Storing the state in \"../out/workflow/terraform.tfstate\" will store the state in workflow scope. \n        - terraform -chdir=tf apply -state=../out/workflow/terraform.tfstate -no-color -auto-approve",
+            "content": "- id: tf\n     type: action\n      action:\n        files:\n        # Contains all required .tf files after init. Can point to a plain text .tf file as well.\n        - scope: workflow\n          key: tf.tar.gz\n          as: out/workflow/tf\n          type: tar.gz\n        function: get\n        input: \n          variables:\n          - name: name\n            value: MyName\n          commands:\n          - command: terraform -chdir=out/workflow/tf apply -no-color -auto-approve\n          - command: terraform -chdir=out/workflow/tf output -json",
             "title": "Basic"
           },
           {
-            "content": "- id: tf\n     type: action\n       action:\n        function: get\n        secrets: [\"password\"]\n        files:\n        - scope: workflow\n          key: main.tf\n        input: \n          commands:\n          # Uses tfstate with a jq component. Can run same .tf file for different instances. \n          - terraform apply -state=out/workflow/terraform-jq(.instance).tfstate -no-color -auto-approve\n          # returns state of the change and can be used in a switch later\n          - terraform plan -detailed-exitcode | echo $?\n          variables:\n          - name: instance_name\n            value: jq(.instance)\n          # Use of Direktiv secrets or fetch secrets earlier in the flow.\n          - password:\n            value: jq(.secrets.password)",
+            "content": "- id: tf\n     type: action\n       action:\n        function: get\n        secrets: [\"password\"]\n        files:\n        - scope: workflow\n          key: main.tf\n        input: \n          commands:\n          # Uses tfstate with a jq component. Can run same .tf file for different instances. \n          - command: terraform apply -state=out/workflow/terraform-jq(.instance).tfstate -no-color -auto-approve\n          # returns state of the change and can be used in a switch later\n          - command: terraform plan -detailed-exitcode | echo $?\n          variables:\n          - name: instance_name\n            value: jq(.instance)\n          # Use of Direktiv secrets or fetch secrets earlier in the flow.\n          - password:\n            value: jq(.secrets.password)",
             "title": "Example with Variables and Secrets"
           },
           {
-            "content": "- id: tf\n     type: action\n       action:\n        function: get\n        files:\n        - scope: workflow\n          key: main.tf\n        input: \n          commands:\n          # return graph as base64\n          - terraform graph | dot -Tpng | base64 -w0\n          # store graph as Direktiv variable\n          - terraform graph | dot -Tpng \u003e out/workflow/graph.png",
+            "content": "- id: tf\n     type: action\n       action:\n        function: get\n        files:\n        - scope: workflow\n          key: main.tf\n        input: \n          commands:\n          # return graph as base64\n          - command: bash -c 'terraform -chdir=out/workflow/tf graph | dot -Tpng | base64 -w0'\n          # store graph as Direktiv variable\n          - command: bash -c 'terraform graph | dot -Tpng \u003e out/workflow/graph.png'",
             "title": "Visualize"
           }
         ],
@@ -489,6 +525,19 @@ func init() {
           "description": "If set to false the command will not print output to logs.",
           "type": "boolean",
           "default": false
+        }
+      }
+    },
+    "EnvsItems0": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Name of the variable.",
+          "type": "string"
+        },
+        "value": {
+          "description": "Value of the variable.",
+          "type": "string"
         }
       }
     },

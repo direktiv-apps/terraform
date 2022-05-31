@@ -86,6 +86,21 @@ paths:
                 type: string
                 description: Scope where the log file is stored, default instance. Filename `tf.log`.
                 default: instance
+              envs:
+                type: array
+                description: Environment variables set for all commands, e.g. for AWS_* variables
+                example: 
+                - name: AWS_ACCESS_KEY_ID
+                  value: jq(.secrets.aws)
+                items:
+                  type: object
+                  properties:
+                    name:
+                      description: Name of the variable.
+                      type: string
+                    value:
+                      description: Value of the variable.
+                      type: string
               variables:
                 type: array
                 description: Variables set for all commands. This translatyes into TF_VAR_* environment variables.
@@ -126,6 +141,9 @@ paths:
                       - name: name
                         value: MyName
                       commands:
+                      # Direktiv links files as 600 into the filsystem, we change it to make it executable
+                      # This depends on your plugins
+                      - command: chmod -R 755 out/workflow/tf
                       - command: terraform -chdir=out/workflow/tf apply -no-color -auto-approve
                       - command: terraform -chdir=out/workflow/tf output -json
         - title: Example with Variables and Secrets
@@ -174,12 +192,19 @@ paths:
           silent: '{{ .Item.Silent }}'
           print: '{{ .Item.Print }}'
           continue: '{{ .Item.Continue }}'
-          env: ["TF_IN_AUTOMATION=y", "TF_INPUT=0", 'TF_LOG={{ default "off" .Body.Loglevel }}', 'TF_LOG_PATH={{ .DirektivDir }}/out/{{ default "instance" .Body.Scope }}/tf.log']
+          env: ["TF_IN_AUTOMATION=y", "TF_INPUT=0", 'TF_LOG={{ default "off" .Body.Loglevel }}', 'TF_LOG_PATH={{ .DirektivDir }}/out/{{ default "instance" .Body.Scope }}/tf.log'] 
           runtime-envs: |
             [
             {{- range $index, $element := .Body.Variables }}
             {{- if $index}},{{- end}}
             "TF_VAR_{{ $element.Name }}={{ $element.Value }}"
+            {{- end }}
+            {{- $lenVar := len .Body.Variables }}
+            {{- $lenEnvs := len .Body.Envs }}
+            {{- if and (gt $lenVar 0) (gt $lenEnvs 0) }},{{- end}}
+            {{- range $index, $element := .Body.Envs }}
+            {{- if $index}},{{- end}}
+            "{{ $element.Name }}={{ $element.Value }}"
             {{- end }}
             ]
         output: |
