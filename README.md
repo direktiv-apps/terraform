@@ -14,7 +14,7 @@ Run Hashicorp Terrafrom from Direktiv
 
 ## About terraform
 
-This function has [Terraform](https://www.terraform.io/) and the graphiz installed. Direktiv variables can be used to store and load the state.  The function can run `init` but accepts data prepared with `init` already. 
+This function has [Terraform](https://www.terraform.io/) and the graphiz installed. Direktiv variables can be used to store and load the state.  The function can run `init` but accepts data already prepared with `init`. 
 
 ### Example(s)
   #### Function Configuration

@@ -184,7 +184,6 @@ paths:
                       # store graph as Direktiv variable
                       - command: bash -c 'terraform graph | dot -Tpng > out/workflow/graph.png'
       x-direktiv:
-        debug: true
         cmds:
         - action: foreach
           loop: .Commands

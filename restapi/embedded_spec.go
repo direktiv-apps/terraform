@@ -41,7 +41,7 @@ func init() {
       "container": "gcr.io/direktiv/apps/terraform",
       "issues": "https://github.com/direktiv-apps/terraform/issues",
       "license": "[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)",
-      "long-description": "This function has [Terraform](https://www.terraform.io/) and the graphiz installed. Direktiv variables can be used to store and load the state.  The function can run ` + "`" + `init` + "`" + ` but accepts data prepared with ` + "`" + `init` + "`" + ` already. ",
+      "long-description": "This function has [Terraform](https://www.terraform.io/) and the graphiz installed. Direktiv variables can be used to store and load the state.  The function can run ` + "`" + `init` + "`" + ` but accepts data already prepared with ` + "`" + `init` + "`" + `. ",
       "maintainer": "[direktiv.io](https://www.direktiv.io) ",
       "url": "https://github.com/direktiv-apps/terraform"
     }
@@ -229,7 +229,6 @@ func init() {
               "silent": "{{ .Item.Silent }}"
             }
           ],
-          "debug": true,
           "output": "{\n  \"terraform\": {{ index . 0 | toJson }}\n}\n"
         },
         "x-direktiv-errors": {
@@ -239,7 +238,7 @@ func init() {
         },
         "x-direktiv-examples": [
           {
-            "content": "- id: tf\n     type: action\n      action:\n        files:\n        # Contains all required .tf files after init. Can point to a plain text .tf file as well.\n        - scope: workflow\n          key: tf.tar.gz\n          as: out/workflow/tf\n          type: tar.gz\n        function: get\n        input: \n          variables:\n          - name: name\n            value: MyName\n          commands:\n          - command: terraform -chdir=out/workflow/tf apply -no-color -auto-approve\n          - command: terraform -chdir=out/workflow/tf output -json",
+            "content": "- id: tf\n     type: action\n      action:\n        files:\n        # Contains all required .tf files after init. Can point to a plain text .tf file as well.\n        - scope: workflow\n          key: tf.tar.gz\n          as: out/workflow/tf\n          type: tar.gz\n        function: get\n        input: \n          variables:\n          - name: name\n            value: MyName\n          commands:\n          # Direktiv links files as 600 into the filsystem, we change it to make it executable\n          # This depends on your plugins\n          - command: chmod -R 755 out/workflow/tf\n          - command: terraform -chdir=out/workflow/tf apply -no-color -auto-approve\n          - command: terraform -chdir=out/workflow/tf output -json",
             "title": "Basic"
           },
           {
@@ -324,7 +323,7 @@ func init() {
       "container": "gcr.io/direktiv/apps/terraform",
       "issues": "https://github.com/direktiv-apps/terraform/issues",
       "license": "[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)",
-      "long-description": "This function has [Terraform](https://www.terraform.io/) and the graphiz installed. Direktiv variables can be used to store and load the state.  The function can run ` + "`" + `init` + "`" + ` but accepts data prepared with ` + "`" + `init` + "`" + ` already. ",
+      "long-description": "This function has [Terraform](https://www.terraform.io/) and the graphiz installed. Direktiv variables can be used to store and load the state.  The function can run ` + "`" + `init` + "`" + ` but accepts data already prepared with ` + "`" + `init` + "`" + `. ",
       "maintainer": "[direktiv.io](https://www.direktiv.io) ",
       "url": "https://github.com/direktiv-apps/terraform"
     }
@@ -459,7 +458,6 @@ func init() {
               "silent": "{{ .Item.Silent }}"
             }
           ],
-          "debug": true,
           "output": "{\n  \"terraform\": {{ index . 0 | toJson }}\n}\n"
         },
         "x-direktiv-errors": {
@@ -469,7 +467,7 @@ func init() {
         },
         "x-direktiv-examples": [
           {
-            "content": "- id: tf\n     type: action\n      action:\n        files:\n        # Contains all required .tf files after init. Can point to a plain text .tf file as well.\n        - scope: workflow\n          key: tf.tar.gz\n          as: out/workflow/tf\n          type: tar.gz\n        function: get\n        input: \n          variables:\n          - name: name\n            value: MyName\n          commands:\n          - command: terraform -chdir=out/workflow/tf apply -no-color -auto-approve\n          - command: terraform -chdir=out/workflow/tf output -json",
+            "content": "- id: tf\n     type: action\n      action:\n        files:\n        # Contains all required .tf files after init. Can point to a plain text .tf file as well.\n        - scope: workflow\n          key: tf.tar.gz\n          as: out/workflow/tf\n          type: tar.gz\n        function: get\n        input: \n          variables:\n          - name: name\n            value: MyName\n          commands:\n          # Direktiv links files as 600 into the filsystem, we change it to make it executable\n          # This depends on your plugins\n          - command: chmod -R 755 out/workflow/tf\n          - command: terraform -chdir=out/workflow/tf apply -no-color -auto-approve\n          - command: terraform -chdir=out/workflow/tf output -json",
             "title": "Basic"
           },
           {

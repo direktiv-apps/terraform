@@ -49,7 +49,6 @@ type ctxInfo struct {
 }
 
 func PostDirektivHandle(params PostParams) middleware.Responder {
-	fmt.Printf("params in: %+v", params)
 	resp := &PostOKBody{}
 
 	var (
@@ -107,8 +106,6 @@ func PostDirektivHandle(params PostParams) middleware.Responder {
 	paramsCollector = append(paramsCollector, ret)
 	accParams.Commands = paramsCollector
 
-	fmt.Printf("object going in output template: %+v\n", responses)
-
 	s, err := templateString(`{
   "terraform": {{ index . 0 | toJson }}
 }
@@ -116,7 +113,6 @@ func PostDirektivHandle(params PostParams) middleware.Responder {
 	if err != nil {
 		return generateError(outErr, err)
 	}
-	fmt.Printf("object from output template: %+v\n", s)
 
 	responseBytes := []byte(s)
 
@@ -125,7 +121,6 @@ func PostDirektivHandle(params PostParams) middleware.Responder {
 	err = resp.Validate(strfmt.Default)
 
 	if err != nil {
-		fmt.Printf("error parsing output object: %+v\n", err)
 		return generateError(outErr, err)
 	}
 
@@ -153,7 +148,6 @@ func runCommand0(ctx context.Context,
 			params.Body.Commands[a],
 			params.DirektivDir,
 		}
-		fmt.Printf("object going in command template: %+v\n", ls)
 
 		cmd, err := templateString(`{{ .Item.Command }}`, ls)
 		if err != nil {
