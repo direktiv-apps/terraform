@@ -16,7 +16,7 @@ import (
 // PostOKCode is the HTTP code returned for type PostOK
 const PostOKCode int = 200
 
-/*PostOK nice greeting
+/*PostOK List of executed commands.
 
 swagger:response postOK
 */
@@ -25,7 +25,7 @@ type PostOK struct {
 	/*
 	  In: Body
 	*/
-	Payload interface{} `json:"body,omitempty"`
+	Payload *PostOKBody `json:"body,omitempty"`
 }
 
 // NewPostOK creates PostOK with default headers values
@@ -35,13 +35,13 @@ func NewPostOK() *PostOK {
 }
 
 // WithPayload adds the payload to the post o k response
-func (o *PostOK) WithPayload(payload interface{}) *PostOK {
+func (o *PostOK) WithPayload(payload *PostOKBody) *PostOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the post o k response
-func (o *PostOK) SetPayload(payload interface{}) {
+func (o *PostOK) SetPayload(payload *PostOKBody) {
 	o.Payload = payload
 }
 
@@ -49,9 +49,11 @@ func (o *PostOK) SetPayload(payload interface{}) {
 func (o *PostOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(200)
-	payload := o.Payload
-	if err := producer.Produce(rw, payload); err != nil {
-		panic(err) // let the recovery middleware deal with this
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
 	}
 }
 

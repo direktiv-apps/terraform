@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // PostHandlerFunc turns a function with the right signature into a post handler
@@ -65,13 +66,14 @@ func (o *Post) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 // swagger:model PostBody
 type PostBody struct {
 
-	// Commands to execute in order.
-	// Example: ["terraform -chdir=out/workflow/tfbase.tar.gz plan"]
-	Commands []string `json:"commands"`
+	// Array of commands.
+	Commands []*PostParamsBodyCommandsItems0 `json:"commands"`
 
-	// If set to true all commands are getting executed and errors ignored.
-	// Example: true
-	Continue *bool `json:"continue,omitempty"`
+	// Terraform log level, default off
+	Loglevel *string `json:"loglevel,omitempty"`
+
+	// Scope where the log file is stored, default instance. Filename `tf.log`.
+	Scope *string `json:"scope,omitempty"`
 
 	// Variables set for all commands. This translatyes into TF_VAR_* environment variables.
 	// Example: [{"name":"instance_name","value":"myinstance"}]
@@ -82,6 +84,10 @@ type PostBody struct {
 func (o *PostBody) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := o.validateCommands(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := o.validateVariables(formats); err != nil {
 		res = append(res, err)
 	}
@@ -89,6 +95,32 @@ func (o *PostBody) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (o *PostBody) validateCommands(formats strfmt.Registry) error {
+	if swag.IsZero(o.Commands) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(o.Commands); i++ {
+		if swag.IsZero(o.Commands[i]) { // not required
+			continue
+		}
+
+		if o.Commands[i] != nil {
+			if err := o.Commands[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("body" + "." + "commands" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("body" + "." + "commands" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 
@@ -122,6 +154,10 @@ func (o *PostBody) validateVariables(formats strfmt.Registry) error {
 func (o *PostBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
+	if err := o.contextValidateCommands(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := o.contextValidateVariables(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -129,6 +165,26 @@ func (o *PostBody) ContextValidate(ctx context.Context, formats strfmt.Registry)
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (o *PostBody) contextValidateCommands(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(o.Commands); i++ {
+
+		if o.Commands[i] != nil {
+			if err := o.Commands[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("body" + "." + "commands" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("body" + "." + "commands" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 
@@ -163,6 +219,227 @@ func (o *PostBody) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary interface implementation
 func (o *PostBody) UnmarshalBinary(b []byte) error {
 	var res PostBody
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
+}
+
+// PostOKBody post o k body
+//
+// swagger:model PostOKBody
+type PostOKBody struct {
+
+	// terraform
+	Terraform []*PostOKBodyTerraformItems0 `json:"terraform"`
+}
+
+// Validate validates this post o k body
+func (o *PostOKBody) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.validateTerraform(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *PostOKBody) validateTerraform(formats strfmt.Registry) error {
+	if swag.IsZero(o.Terraform) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(o.Terraform); i++ {
+		if swag.IsZero(o.Terraform[i]) { // not required
+			continue
+		}
+
+		if o.Terraform[i] != nil {
+			if err := o.Terraform[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("postOK" + "." + "terraform" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("postOK" + "." + "terraform" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this post o k body based on the context it is used
+func (o *PostOKBody) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.contextValidateTerraform(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *PostOKBody) contextValidateTerraform(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(o.Terraform); i++ {
+
+		if o.Terraform[i] != nil {
+			if err := o.Terraform[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("postOK" + "." + "terraform" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("postOK" + "." + "terraform" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *PostOKBody) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *PostOKBody) UnmarshalBinary(b []byte) error {
+	var res PostOKBody
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
+}
+
+// PostOKBodyTerraformItems0 post o k body terraform items0
+//
+// swagger:model PostOKBodyTerraformItems0
+type PostOKBodyTerraformItems0 struct {
+
+	// result
+	// Required: true
+	Result interface{} `json:"result"`
+
+	// success
+	// Required: true
+	Success *bool `json:"success"`
+}
+
+// Validate validates this post o k body terraform items0
+func (o *PostOKBodyTerraformItems0) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := o.validateResult(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := o.validateSuccess(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (o *PostOKBodyTerraformItems0) validateResult(formats strfmt.Registry) error {
+
+	if o.Result == nil {
+		return errors.Required("result", "body", nil)
+	}
+
+	return nil
+}
+
+func (o *PostOKBodyTerraformItems0) validateSuccess(formats strfmt.Registry) error {
+
+	if err := validate.Required("success", "body", o.Success); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validates this post o k body terraform items0 based on context it is used
+func (o *PostOKBodyTerraformItems0) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *PostOKBodyTerraformItems0) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *PostOKBodyTerraformItems0) UnmarshalBinary(b []byte) error {
+	var res PostOKBodyTerraformItems0
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*o = res
+	return nil
+}
+
+// PostParamsBodyCommandsItems0 post params body commands items0
+//
+// swagger:model PostParamsBodyCommandsItems0
+type PostParamsBodyCommandsItems0 struct {
+
+	// Command to run
+	// Example: terraform version
+	Command string `json:"command,omitempty"`
+
+	// Stops excecution if command fails, otherwise proceeds with next command
+	Continue bool `json:"continue,omitempty"`
+
+	// If set to false the command will not print the full command with arguments to logs.
+	Print *bool `json:"print,omitempty"`
+
+	// If set to false the command will not print output to logs.
+	Silent *bool `json:"silent,omitempty"`
+}
+
+// Validate validates this post params body commands items0
+func (o *PostParamsBodyCommandsItems0) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this post params body commands items0 based on context it is used
+func (o *PostParamsBodyCommandsItems0) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (o *PostParamsBodyCommandsItems0) MarshalBinary() ([]byte, error) {
+	if o == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(o)
+}
+
+// UnmarshalBinary interface implementation
+func (o *PostParamsBodyCommandsItems0) UnmarshalBinary(b []byte) error {
+	var res PostParamsBodyCommandsItems0
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

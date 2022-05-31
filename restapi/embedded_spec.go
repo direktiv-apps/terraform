@@ -31,13 +31,14 @@ func init() {
   "info": {
     "description": "Run Hashicorp Terrafrom from Direktiv",
     "title": "terraform",
-    "version": "1.0.0",
+    "version": "1.0",
     "x-direktiv-meta": {
       "categories": [
-        "Cloud",
-        "Tools"
+        "cloud",
+        "tools",
+        "infrastructure"
       ],
-      "container": "direktiv/terraform",
+      "container": "gcr.io/direktiv/apps/terraform",
       "issues": "https://github.com/direktiv-apps/terraform/issues",
       "license": "[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)",
       "long-description": null,
@@ -68,20 +69,42 @@ func init() {
               "type": "object",
               "properties": {
                 "commands": {
-                  "description": "Commands to execute in order.",
+                  "description": "Array of commands.",
                   "type": "array",
                   "items": {
-                    "type": "string"
-                  },
-                  "example": [
-                    "terraform -chdir=out/workflow/tfbase.tar.gz plan"
-                  ]
+                    "type": "object",
+                    "properties": {
+                      "command": {
+                        "description": "Command to run",
+                        "type": "string",
+                        "example": "terraform version"
+                      },
+                      "continue": {
+                        "description": "Stops excecution if command fails, otherwise proceeds with next command",
+                        "type": "boolean"
+                      },
+                      "print": {
+                        "description": "If set to false the command will not print the full command with arguments to logs.",
+                        "type": "boolean",
+                        "default": true
+                      },
+                      "silent": {
+                        "description": "If set to false the command will not print output to logs.",
+                        "type": "boolean",
+                        "default": false
+                      }
+                    }
+                  }
                 },
-                "continue": {
-                  "description": "If set to true all commands are getting executed and errors ignored.",
-                  "type": "boolean",
-                  "default": false,
-                  "example": true
+                "loglevel": {
+                  "description": "Terraform log level, default off",
+                  "type": "string",
+                  "default": "off"
+                },
+                "scope": {
+                  "description": "Scope where the log file is stored, default instance. Filename ` + "`" + `tf.log` + "`" + `.",
+                  "type": "string",
+                  "default": "instance"
                 },
                 "variables": {
                   "description": "Variables set for all commands. This translatyes into TF_VAR_* environment variables.",
@@ -112,13 +135,42 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "nice greeting",
+            "description": "List of executed commands.",
             "schema": {
               "type": "object",
-              "additionalProperties": false,
-              "example": {
-                "greeting": "Hello YourName"
+              "properties": {
+                "terraform": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "success",
+                      "result"
+                    ],
+                    "properties": {
+                      "result": {
+                        "additionalProperties": false
+                      },
+                      "success": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
               }
+            },
+            "examples": {
+              "terraform": [
+                {
+                  "result": "VTQ3U....c2ZaN0FJaldjVnkra2tKV==",
+                  "success": true
+                },
+                {
+                  "format_version": "1.0",
+                  "result": null,
+                  "success": true
+                }
+              ]
             }
           },
           "default": {
@@ -140,14 +192,18 @@ func init() {
           "cmds": [
             {
               "action": "foreach",
-              "continue": "{{ .Body.Continue }}",
+              "continue": "{{ .Item.Continue }}",
               "env": [
                 "TF_IN_AUTOMATION=y",
-                "TF_INPUT=0"
+                "TF_INPUT=0",
+                "TF_LOG={{ default \"off\" .Body.Loglevel }}",
+                "TF_LOG_PATH={{ .DirektivDir }}/out/{{ default \"instance\" .Body.Scope }}/tf.log"
               ],
-              "exec": "/bin/bash -c \"{{ .Item }}\"",
+              "exec": "{{ .Item.Command }}",
               "loop": ".Commands",
-              "runtime-envs": "[\n{{- range $index, $element := .Body.Variables }}\n{{- if $index}},{{- end}}\n\"TF_VAR_{{ $element.Name }}={{ $element.Value }}\"\n{{- end }}\n]\n"
+              "print": "{{ .Item.Print }}",
+              "runtime-envs": "[\n{{- range $index, $element := .Body.Variables }}\n{{- if $index}},{{- end}}\n\"TF_VAR_{{ $element.Name }}={{ $element.Value }}\"\n{{- end }}\n]\n",
+              "silent": "{{ .Item.Silent }}"
             }
           ],
           "debug": true,
@@ -172,7 +228,7 @@ func init() {
             "title": "Visualize"
           }
         ],
-        "x-direktiv-function": "functions:\n  - id: terraform\n    image: direktiv/terraform\n    type: knative-workflow"
+        "x-direktiv-function": "functions:\n  - id: terraform\n    image: gcr.io/direktiv/apps/terraform:1.0\n    type: knative-workflow"
       },
       "delete": {
         "parameters": [
@@ -235,13 +291,14 @@ func init() {
   "info": {
     "description": "Run Hashicorp Terrafrom from Direktiv",
     "title": "terraform",
-    "version": "1.0.0",
+    "version": "1.0",
     "x-direktiv-meta": {
       "categories": [
-        "Cloud",
-        "Tools"
+        "cloud",
+        "tools",
+        "infrastructure"
       ],
-      "container": "direktiv/terraform",
+      "container": "gcr.io/direktiv/apps/terraform",
       "issues": "https://github.com/direktiv-apps/terraform/issues",
       "license": "[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)",
       "long-description": null,
@@ -272,20 +329,21 @@ func init() {
               "type": "object",
               "properties": {
                 "commands": {
-                  "description": "Commands to execute in order.",
+                  "description": "Array of commands.",
                   "type": "array",
                   "items": {
-                    "type": "string"
-                  },
-                  "example": [
-                    "terraform -chdir=out/workflow/tfbase.tar.gz plan"
-                  ]
+                    "$ref": "#/definitions/CommandsItems0"
+                  }
                 },
-                "continue": {
-                  "description": "If set to true all commands are getting executed and errors ignored.",
-                  "type": "boolean",
-                  "default": false,
-                  "example": true
+                "loglevel": {
+                  "description": "Terraform log level, default off",
+                  "type": "string",
+                  "default": "off"
+                },
+                "scope": {
+                  "description": "Scope where the log file is stored, default instance. Filename ` + "`" + `tf.log` + "`" + `.",
+                  "type": "string",
+                  "default": "instance"
                 },
                 "variables": {
                   "description": "Variables set for all commands. This translatyes into TF_VAR_* environment variables.",
@@ -306,13 +364,30 @@ func init() {
         ],
         "responses": {
           "200": {
-            "description": "nice greeting",
+            "description": "List of executed commands.",
             "schema": {
               "type": "object",
-              "additionalProperties": false,
-              "example": {
-                "greeting": "Hello YourName"
+              "properties": {
+                "terraform": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/TerraformItems0"
+                  }
+                }
               }
+            },
+            "examples": {
+              "terraform": [
+                {
+                  "result": "VTQ3U....c2ZaN0FJaldjVnkra2tKV==",
+                  "success": true
+                },
+                {
+                  "format_version": "1.0",
+                  "result": null,
+                  "success": true
+                }
+              ]
             }
           },
           "default": {
@@ -334,14 +409,18 @@ func init() {
           "cmds": [
             {
               "action": "foreach",
-              "continue": "{{ .Body.Continue }}",
+              "continue": "{{ .Item.Continue }}",
               "env": [
                 "TF_IN_AUTOMATION=y",
-                "TF_INPUT=0"
+                "TF_INPUT=0",
+                "TF_LOG={{ default \"off\" .Body.Loglevel }}",
+                "TF_LOG_PATH={{ .DirektivDir }}/out/{{ default \"instance\" .Body.Scope }}/tf.log"
               ],
-              "exec": "/bin/bash -c \"{{ .Item }}\"",
+              "exec": "{{ .Item.Command }}",
               "loop": ".Commands",
-              "runtime-envs": "[\n{{- range $index, $element := .Body.Variables }}\n{{- if $index}},{{- end}}\n\"TF_VAR_{{ $element.Name }}={{ $element.Value }}\"\n{{- end }}\n]\n"
+              "print": "{{ .Item.Print }}",
+              "runtime-envs": "[\n{{- range $index, $element := .Body.Variables }}\n{{- if $index}},{{- end}}\n\"TF_VAR_{{ $element.Name }}={{ $element.Value }}\"\n{{- end }}\n]\n",
+              "silent": "{{ .Item.Silent }}"
             }
           ],
           "debug": true,
@@ -366,7 +445,7 @@ func init() {
             "title": "Visualize"
           }
         ],
-        "x-direktiv-function": "functions:\n  - id: terraform\n    image: direktiv/terraform\n    type: knative-workflow"
+        "x-direktiv-function": "functions:\n  - id: terraform\n    image: gcr.io/direktiv/apps/terraform:1.0\n    type: knative-workflow"
       },
       "delete": {
         "parameters": [
@@ -389,6 +468,45 @@ func init() {
     }
   },
   "definitions": {
+    "CommandsItems0": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "description": "Command to run",
+          "type": "string",
+          "example": "terraform version"
+        },
+        "continue": {
+          "description": "Stops excecution if command fails, otherwise proceeds with next command",
+          "type": "boolean"
+        },
+        "print": {
+          "description": "If set to false the command will not print the full command with arguments to logs.",
+          "type": "boolean",
+          "default": true
+        },
+        "silent": {
+          "description": "If set to false the command will not print output to logs.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "TerraformItems0": {
+      "type": "object",
+      "required": [
+        "success",
+        "result"
+      ],
+      "properties": {
+        "result": {
+          "additionalProperties": false
+        },
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
     "VariablesItems0": {
       "type": "object",
       "properties": {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/direktiv/apps/go/pkg/apps"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
 
 	"terraform/models"
 )
@@ -32,17 +33,24 @@ const (
 
 type accParams struct {
 	PostParams
-	Commands []interface{}
+	Commands    []interface{}
+	DirektivDir string
 }
 
 type accParamsTemplate struct {
 	PostBody
-	Commands []interface{}
+	Commands    []interface{}
+	DirektivDir string
+}
+
+type ctxInfo struct {
+	cf        context.CancelFunc
+	cancelled bool
 }
 
 func PostDirektivHandle(params PostParams) middleware.Responder {
 	fmt.Printf("params in: %+v", params)
-	var resp interface{}
+	resp := &PostOKBody{}
 
 	var (
 		err  error
@@ -56,8 +64,13 @@ func PostDirektivHandle(params PostParams) middleware.Responder {
 	}
 
 	ctx, cancel := context.WithCancel(params.HTTPRequest.Context())
-	sm.Store(*params.DirektivActionID, cancel)
-	defer sm.Delete(params.DirektivActionID)
+
+	sm.Store(*params.DirektivActionID, &ctxInfo{
+		cancel,
+		false,
+	})
+
+	defer sm.Delete(*params.DirektivActionID)
 
 	var responses []interface{}
 
@@ -65,15 +78,29 @@ func PostDirektivHandle(params PostParams) middleware.Responder {
 	accParams := accParams{
 		params,
 		nil,
+		ri.Dir(),
 	}
 
 	ret, err = runCommand0(ctx, accParams, ri)
 	responses = append(responses, ret)
 
-	cont = convertTemplateToBool("{{ .Body.Continue }}", accParams, true)
+	// if foreach returns an error there is no continue
+	cont = false
 
 	if err != nil && !cont {
+
 		errName := cmdErr
+
+		// if the delete function added the cancel tag
+		ci, ok := sm.Load(*params.DirektivActionID)
+		if ok {
+			cinfo, ok := ci.(*ctxInfo)
+			if ok && cinfo.cancelled {
+				errName = "direktiv.actionCancelled"
+				err = fmt.Errorf("action got cancel request")
+			}
+		}
+
 		return generateError(errName, err)
 	}
 
@@ -93,9 +120,12 @@ func PostDirektivHandle(params PostParams) middleware.Responder {
 
 	responseBytes := []byte(s)
 
-	err = json.Unmarshal(responseBytes, &resp)
+	// validate
+	resp.UnmarshalBinary(responseBytes)
+	err = resp.Validate(strfmt.Default)
+
 	if err != nil {
-		fmt.Printf("error parsing output template: %+v\n", err)
+		fmt.Printf("error parsing output object: %+v\n", err)
 		return generateError(outErr, err)
 	}
 
@@ -105,7 +135,8 @@ func PostDirektivHandle(params PostParams) middleware.Responder {
 // foreach command
 type LoopStruct0 struct {
 	accParams
-	Item interface{}
+	Item        interface{}
+	DirektivDir string
 }
 
 func runCommand0(ctx context.Context,
@@ -120,10 +151,11 @@ func runCommand0(ctx context.Context,
 		ls := &LoopStruct0{
 			params,
 			params.Body.Commands[a],
+			params.DirektivDir,
 		}
 		fmt.Printf("object going in command template: %+v\n", ls)
 
-		cmd, err := templateString(`/bin/bash -c "{{ .Item }}"`, ls)
+		cmd, err := templateString(`{{ .Item.Command }}`, ls)
 		if err != nil {
 			ir := make(map[string]interface{})
 			ir[successKey] = false
@@ -132,9 +164,9 @@ func runCommand0(ctx context.Context,
 			continue
 		}
 
-		silent := convertTemplateToBool("<no value>", ls, false)
-		print := convertTemplateToBool("<no value>", ls, true)
-		cont := convertTemplateToBool("{{ .Body.Continue }}", ls, false)
+		silent := convertTemplateToBool("{{ .Item.Silent }}", ls, false)
+		print := convertTemplateToBool("{{ .Item.Print }}", ls, true)
+		cont := convertTemplateToBool("{{ .Item.Continue }}", ls, false)
 		output := ""
 
 		envs := []string{}
@@ -142,6 +174,10 @@ func runCommand0(ctx context.Context,
 		envs = append(envs, env0)
 		env1, _ := templateString(`TF_INPUT=0`, ls)
 		envs = append(envs, env1)
+		env2, _ := templateString(`TF_LOG={{ default "off" .Body.Loglevel }}`, ls)
+		envs = append(envs, env2)
+		env3, _ := templateString(`TF_LOG_PATH={{ .DirektivDir }}/out/{{ default "instance" .Body.Scope }}/tf.log`, ls)
+		envs = append(envs, env3)
 
 		envTempl, err := templateString(`[
 {{- range $index, $element := .Body.Variables }}

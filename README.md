@@ -1,11 +1,11 @@
 
-# terraform 1.0.0
+# terraform 1.0
 
 Run Hashicorp Terrafrom from Direktiv
 
 ---
-- #### Categories: Cloud, Tools
-- #### Image: direktiv/terraform 
+- #### Categories: cloud, tools, infrastructure
+- #### Image: gcr.io/direktiv/apps/terraform 
 - #### License: [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)
 - #### Issue Tracking: https://github.com/direktiv-apps/terraform/issues
 - #### URL: https://github.com/direktiv-apps/terraform
@@ -21,26 +21,28 @@ Run Hashicorp Terrafrom from Direktiv
   ```yaml
   functions:
   - id: terraform
-    image: direktiv/terraform
+    image: gcr.io/direktiv/apps/terraform:1.0
     type: knative-workflow
   ```
    #### Basic
    ```yaml
    - id: tf
      type: action
-     action:
-      function: get
-      files:
-      # Contains all required .tf files. Can point to a plain text .tf file as well.
-      - scope: workflow
-        key: tfbase.tar.gz
-        as: tf
-        type: tar.gz
-      input: 
-        commands:
-        # the execution dir (chdir) is "tf" which we create in the "files" section
-        # Storing the state in "../out/workflow/terraform.tfstate" will store the state in workflow scope. 
-        - terraform -chdir=tf apply -state=../out/workflow/terraform.tfstate -no-color -auto-approve
+      action:
+        files:
+        # Contains all required .tf files after init. Can point to a plain text .tf file as well.
+        - scope: workflow
+          key: tf.tar.gz
+          as: out/workflow/tf
+          type: tar.gz
+        function: get
+        input: 
+          variables:
+          - name: name
+            value: MyName
+          commands:
+          - command: terraform -chdir=out/workflow/tf apply -no-color -auto-approve
+          - command: terraform -chdir=out/workflow/tf output -json
    ```
    #### Example with Variables and Secrets
    ```yaml
@@ -105,7 +107,7 @@ Run Hashicorp Terrafrom from Direktiv
     "success": true
   },
   {
-    "format_version": 1,
+    "format_version": "1.0",
     "result": null,
     "success": true
   }
@@ -131,10 +133,10 @@ Run Hashicorp Terrafrom from Direktiv
 
 | Name | Type | Go type | Required | Default | Description | Example |
 |------|------|---------|:--------:| ------- |-------------|---------|
-| output | [][PostOKBodyOutputItems](#post-o-k-body-output-items)| `[]*PostOKBodyOutputItems` |  | |  |  |
+| terraform | [][PostOKBodyTerraformItems](#post-o-k-body-terraform-items)| `[]*PostOKBodyTerraformItems` |  | |  |  |
 
 
-#### <span id="post-o-k-body-output-items"></span> postOKBodyOutputItems
+#### <span id="post-o-k-body-terraform-items"></span> postOKBodyTerraformItems
 
   
 
@@ -158,9 +160,26 @@ Run Hashicorp Terrafrom from Direktiv
 
 | Name | Type | Go type | Required | Default | Description | Example |
 |------|------|---------|:--------:| ------- |-------------|---------|
-| commands | []string| `[]string` |  | | Commands to execute in order. | `["terraform -chdir=out/workflow/tfbase.tar.gz plan"]` |
-| continue | boolean| `bool` |  | | If set to true all commands are getting executed and errors ignored. | `true` |
+| commands | [][PostParamsBodyCommandsItems](#post-params-body-commands-items)| `[]*PostParamsBodyCommandsItems` |  | | Array of commands. |  |
+| loglevel | string| `string` |  | `"off"`| Terraform log level, default off |  |
+| scope | string| `string` |  | `"instance"`| Scope where the log file is stored, default instance. Filename `tf.log`. |  |
 | variables | [][PostParamsBodyVariablesItems](#post-params-body-variables-items)| `[]*PostParamsBodyVariablesItems` |  | | Variables set for all commands. This translatyes into TF_VAR_* environment variables. | `[{"name":"instance_name","value":"myinstance"}]` |
+
+
+#### <span id="post-params-body-commands-items"></span> postParamsBodyCommandsItems
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| command | string| `string` |  | | Command to run | `terraform version` |
+| continue | boolean| `bool` |  | | Stops excecution if command fails, otherwise proceeds with next command |  |
+| print | boolean| `bool` |  | `true`| If set to false the command will not print the full command with arguments to logs. |  |
+| silent | boolean| `bool` |  | | If set to false the command will not print output to logs. |  |
 
 
 #### <span id="post-params-body-variables-items"></span> postParamsBodyVariablesItems

@@ -4,17 +4,20 @@ info:
   title: terraform
   version: "1.0"
   x-direktiv-meta:
-    container: direktiv/terraform
+    container: gcr.io/direktiv/apps/terraform
     maintainer: |-
       [direktiv.io](https://www.direktiv.io) 
     issues: https://github.com/direktiv-apps/terraform/issues
     url: https://github.com/direktiv-apps/terraform  
     categories:
-    - Cloud
-    - Tools
+    - cloud
+    - tools
+    - infrastructure
     license: |-
       [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)
-    long-description: 
+    long-description: >-
+      This function has [Terraform](https://www.terraform.io/) and the graphiz installed. Direktiv variables can be used to store and load the state. 
+      The function can run `init` but accepts data prepared with `init` already. 
 consumes:
 - application/json
 produces:
@@ -54,18 +57,35 @@ paths:
           schema:
             type: object
             properties:
-              continue:
-                type: boolean
-                description: If set to true all commands are getting executed and errors ignored.
-                default: false
-                example: true
               commands:
-                description: Commands to execute in order.
-                example:
-                - terraform -chdir=out/workflow/tfbase.tar.gz plan
                 type: array
+                description: Array of commands.
                 items:
-                  type: string
+                  type: object
+                  properties:
+                    command:
+                      type: string
+                      description: Command to run
+                      example: terraform version
+                    silent: 
+                      type: boolean
+                      description: If set to false the command will not print output to logs.
+                      default: false
+                    print: 
+                      type: boolean
+                      description: If set to false the command will not print the full command with arguments to logs.
+                      default: true
+                    continue: 
+                      type: boolean
+                      description: Stops excecution if command fails, otherwise proceeds with next command 
+              loglevel:
+                type: string
+                description: Terraform log level, default off
+                default: "off"
+              scope:
+                type: string
+                description: Scope where the log file is stored, default instance. Filename `tf.log`.
+                default: instance
               variables:
                 type: array
                 description: Variables set for all commands. This translatyes into TF_VAR_* environment variables.
@@ -86,26 +106,28 @@ paths:
       x-direktiv-function: |-
         functions:
           - id: terraform
-            image: direktiv/terraform
+            image: gcr.io/direktiv/apps/terraform:1.0
             type: knative-workflow
       x-direktiv-examples:
         - title: Basic
           content: |-
             - id: tf
                  type: action
-                 action:
-                  function: get
-                  files:
-                  # Contains all required .tf files. Can point to a plain text .tf file as well.
-                  - scope: workflow
-                    key: tfbase.tar.gz
-                    as: tf
-                    type: tar.gz
-                  input: 
-                    commands:
-                    # the execution dir (chdir) is "tf" which we create in the "files" section
-                    # Storing the state in "../out/workflow/terraform.tfstate" will store the state in workflow scope. 
-                    - terraform -chdir=tf apply -state=../out/workflow/terraform.tfstate -no-color -auto-approve
+                  action:
+                    files:
+                    # Contains all required .tf files after init. Can point to a plain text .tf file as well.
+                    - scope: workflow
+                      key: tf.tar.gz
+                      as: out/workflow/tf
+                      type: tar.gz
+                    function: get
+                    input: 
+                      variables:
+                      - name: name
+                        value: MyName
+                      commands:
+                      - command: terraform -chdir=out/workflow/tf apply -no-color -auto-approve
+                      - command: terraform -chdir=out/workflow/tf output -json
         - title: Example with Variables and Secrets
           content: |-
             - id: tf
@@ -119,9 +141,9 @@ paths:
                     input: 
                       commands:
                       # Uses tfstate with a jq component. Can run same .tf file for different instances. 
-                      - terraform apply -state=out/workflow/terraform-jq(.instance).tfstate -no-color -auto-approve
+                      - command: terraform apply -state=out/workflow/terraform-jq(.instance).tfstate -no-color -auto-approve
                       # returns state of the change and can be used in a switch later
-                      - terraform plan -detailed-exitcode | echo $?
+                      - command: terraform plan -detailed-exitcode | echo $?
                       variables:
                       - name: instance_name
                         value: jq(.instance)
@@ -140,17 +162,19 @@ paths:
                     input: 
                       commands:
                       # return graph as base64
-                      - terraform graph | dot -Tpng | base64 -w0
+                      - command: bash -c 'terraform -chdir=out/workflow/tf graph | dot -Tpng | base64 -w0'
                       # store graph as Direktiv variable
-                      - terraform graph | dot -Tpng > out/workflow/graph.png
+                      - command: terraform graph | dot -Tpng > out/workflow/graph.png
       x-direktiv:
         debug: true
         cmds:
         - action: foreach
           loop: .Commands
-          exec: /bin/bash -c "{{ .Item }}"
-          env: ["TF_IN_AUTOMATION=y", "TF_INPUT=0"]
-          continue: '{{ .Body.Continue }}'
+          exec: '{{ .Item.Command }}'
+          silent: '{{ .Item.Silent }}'
+          print: '{{ .Item.Print }}'
+          continue: '{{ .Item.Continue }}'
+          env: ["TF_IN_AUTOMATION=y", "TF_INPUT=0", 'TF_LOG={{ default "off" .Body.Loglevel }}', 'TF_LOG_PATH={{ .DirektivDir }}/out/{{ default "instance" .Body.Scope }}/tf.log']
           runtime-envs: |
             [
             {{- range $index, $element := .Body.Variables }}
@@ -170,7 +194,7 @@ paths:
         200:
           description: List of executed commands.
           examples:
-            output:
+            terraform:
             - result: VTQ3U....c2ZaN0FJaldjVnkra2tKV==
               success: true
             - result:
@@ -179,7 +203,7 @@ paths:
           schema:
             type: object
             properties:
-              output:
+              terraform:
                 type: array
                 items:
                   type: object
