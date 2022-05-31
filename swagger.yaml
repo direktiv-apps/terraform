@@ -17,7 +17,7 @@ info:
       [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)
     long-description: >-
       This function has [Terraform](https://www.terraform.io/) and the graphiz installed. Direktiv variables can be used to store and load the state. 
-      The function can run `init` but accepts data prepared with `init` already. 
+      The function can run `init` but accepts data already prepared with `init`. 
 consumes:
 - application/json
 produces:
