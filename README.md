@@ -81,7 +81,7 @@ This function has [Terraform](https://www.terraform.io/) and the graphiz install
           # return graph as base64
           - command: bash -c 'terraform -chdir=out/workflow/tf graph | dot -Tpng | base64 -w0'
           # store graph as Direktiv variable
-          - command: terraform graph | dot -Tpng > out/workflow/graph.png
+          - command: bash -c 'terraform graph | dot -Tpng > out/workflow/graph.png'
    ```
 
 ### Request
