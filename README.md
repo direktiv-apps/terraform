@@ -14,7 +14,7 @@ Run Hashicorp Terrafrom from Direktiv
 
 ## About terraform
 
-<no value>
+This function has [Terraform](https://www.terraform.io/) and the graphiz installed. Direktiv variables can be used to store and load the state.  The function can run `init` but accepts data prepared with `init` already. 
 
 ### Example(s)
   #### Function Configuration
@@ -57,9 +57,9 @@ Run Hashicorp Terrafrom from Direktiv
         input: 
           commands:
           # Uses tfstate with a jq component. Can run same .tf file for different instances. 
-          - terraform apply -state=out/workflow/terraform-jq(.instance).tfstate -no-color -auto-approve
+          - command: terraform apply -state=out/workflow/terraform-jq(.instance).tfstate -no-color -auto-approve
           # returns state of the change and can be used in a switch later
-          - terraform plan -detailed-exitcode | echo $?
+          - command: terraform plan -detailed-exitcode | echo $?
           variables:
           - name: instance_name
             value: jq(.instance)
@@ -79,9 +79,9 @@ Run Hashicorp Terrafrom from Direktiv
         input: 
           commands:
           # return graph as base64
-          - terraform graph | dot -Tpng | base64 -w0
+          - command: bash -c 'terraform -chdir=out/workflow/tf graph | dot -Tpng | base64 -w0'
           # store graph as Direktiv variable
-          - terraform graph | dot -Tpng > out/workflow/graph.png
+          - command: terraform graph | dot -Tpng > out/workflow/graph.png
    ```
 
 ### Request
