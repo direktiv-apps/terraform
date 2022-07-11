@@ -21,8 +21,8 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/direktiv/apps/go v0.0.0-20220513021642-2837d7d9a745 h1:Q6xFQQ1rm2ejYu9KuZWaLceOWeJVhxDULtM+krmk2UI=
-github.com/direktiv/apps/go v0.0.0-20220513021642-2837d7d9a745/go.mod h1:TKm203MbCOuIB6KTyvhp96Wfl6VV7srBtg6mB/w8e2A=
+github.com/direktiv/apps/go v0.0.0-20220608004004-faa9b32f2987 h1:j8yi0gQZg+5I2f3SVp7xuEqVsGNSUV6FuthupJ94oBg=
+github.com/direktiv/apps/go v0.0.0-20220608004004-faa9b32f2987/go.mod h1:TKm203MbCOuIB6KTyvhp96Wfl6VV7srBtg6mB/w8e2A=
 github.com/docker/go-units v0.4.0 h1:3uh0PgVws3nIA0Q+MwDC8yjEPf9zjRfZZWXZYDct3Tw=
 github.com/docker/go-units v0.4.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
 github.com/go-openapi/analysis v0.21.2 h1:hXFrOYFHUAMQdu6zwAiKKJHJQ8kqZs1ux/ru1P1wLJU=

@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/codeclysm/extract/v3 v3.0.2
-	github.com/direktiv/apps/go v0.0.0-20220513021642-2837d7d9a745
+	github.com/direktiv/apps/go v0.0.0-20220608004004-faa9b32f2987
 	github.com/go-openapi/errors v0.20.2
 	github.com/go-openapi/loads v0.21.1
 	github.com/go-openapi/runtime v0.24.1
